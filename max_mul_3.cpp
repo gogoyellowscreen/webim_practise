@@ -11,6 +11,32 @@ long long mul(std::multiset<int> & nums) {
     return ans;
 }
 
+void erase_and_insert(std::multiset<int> & nums, const std::multiset<int>::iterator & it, int a) {
+    nums.erase(it);
+    nums.insert(a);
+}
+
+void update_pos(std::multiset<int> & nums, int a) { //удалит минимальное положительное, если а больше и добавит а
+    for (auto it_num = nums.begin(); it_num != nums.end(); ++it_num) {
+        if ((*it_num > 0) && (*it_num < a)) {
+            erase_and_insert(nums, it_num, a);
+            return;
+        }
+    }
+}
+
+void update_neg(std::multiset<int> & nums, int a, bool three_neg) {
+    if (three_neg && (*nums.begin() < a)) {
+        erase_and_insert(nums, nums.begin(), a);
+    }
+    else if (!three_neg) {
+        auto it_num = ++nums.begin();
+        if (*it_num > a) { //если минимальное по модулю отрицательное меньше |a|, то удалим его и добавим а
+            erase_and_insert(nums, it_num, a); //чтобы максимизировать произведение
+        }
+    }
+}
+
 int main() {
     int N;
     std::cin >> N;
@@ -43,35 +69,23 @@ int main() {
         if (a > 0) {
             if (three_pos.size() < 3) three_pos.insert(a);
             else  {
-                if (*three_pos.begin() < a) { //если минимум из положительных меньше а, то нужно запомнить а
-                    three_pos.erase(three_pos.begin());
-                    three_pos.insert(a);
-                }
+                update_pos(three_pos, a);
             }
             if (one_pos_two_neg.empty() || (*one_pos_two_neg.rbegin() < 0)) { //если нет положительного, добавим
                 one_pos_two_neg.insert(a);
             } else {
-                if (*one_pos_two_neg.rbegin() < a) { //если положительное из тройки меньше, запомним а
-                    one_pos_two_neg.erase(--one_pos_two_neg.end()); //end указывает на место после max елемента
-                    one_pos_two_neg.insert(a);
-                }
+                update_pos(one_pos_two_neg, a);
             }
         }
         else if (a < 0) {
             if (three_neg.size() < 3) three_neg.insert(a);
             else {
-                if (*three_neg.begin() < a) { //если минимум из отрицательных меньше а, запомним а
-                    three_neg.erase(three_neg.begin());
-                    three_neg.insert(a);
-                }
+                update_neg(three_neg, a, true);
             }
             if (one_pos_two_neg.size() == 3) {
-                if (*one_pos_two_neg.begin() > a) { //если отрицательное меньше по модулю а, то добавим а
-                    one_pos_two_neg.erase(one_pos_two_neg.begin());
-                    one_pos_two_neg.insert(a);
-                }
+                update_neg(one_pos_two_neg, a, false);
             }
-            else if (one_pos_two_neg.empty() || *one_pos_two_neg.rbegin() > 0) {
+            else if ((one_pos_two_neg.size() <= 1) || (*one_pos_two_neg.rbegin() > 0)) {
                 one_pos_two_neg.insert(a); //если не хватает отрицательных в тройке, то добавим
             }
         }
@@ -79,6 +93,7 @@ int main() {
             have_zero = true; //нашли 0 -> получили произведение равное 0
         }
     }
+
     long long ans_without_0 = std::max(std::max(mul(three_pos), mul(three_neg)), mul(one_pos_two_neg));
     std::cout << (have_zero ? std::max(0ll, ans_without_0) : ans_without_0);
     return 0;
